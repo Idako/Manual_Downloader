@@ -1,0 +1,193 @@
+<!DOCTYPE HTML>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+		<title>Subaru Service Manual Downloader</title>
+		<!--Standard jquery include -->
+		<script src="http://code.jquery.com/jquery-2.1.3.min.js"></script>
+		
+		<!--include for the delay processing -->
+		<script type="text/javascript" src="http://creativecouple.github.com/jquery-timing/jquery-timing.min.js"></script>
+		
+		<style type="text/css">
+			#textarea-extract{
+				width:50%;
+				height:100px;
+			}
+			button{font-size:2em;}
+			h4{margin:2px;}
+		</style>
+	</head>
+	<body>
+	<script type="text/javascript">
+	
+	var debug				=false;
+	var $extract_processed	={};
+
+	$(function(){
+		$("#btn-process-extract").on("click",function(){
+			$extract_processed=parse_extract($("#textarea-extract").val());
+
+			var num_files=$("a",$extract_processed).length;
+
+			$("#status-container").html("<b>" + num_files + "</b> PDF's have been discovered.");
+			
+			if (num_files>0)
+				$("#btn-download-files").prop("disabled",false);
+			
+		});
+		
+		$("#btn-download-files").on("click",function(){
+			$(this).prop("disabled",true); //dont accidentally start it again 
+			get_files();
+		});
+	});
+	
+	function get_files(){
+		
+		var base_url=$("#txtBaseURL").val();
+		var delay_in_seconds=Number($("#txtDelay").val());
+		var start_idx=Number($("#txtStartIndex").val());
+		var num_files=$("a",$extract_processed).length;
+		var real_delay=1000*delay_in_seconds;
+		
+		start_idx=start_idx==0?start_idx:(start_idx-1);
+		
+		//greater than OR equal ... annoying, gteq!!!
+		$("a:gt(" + start_idx + "),a:eq(" + start_idx + ")",$extract_processed).each($).wait(real_delay,function(index){
+					
+			$anchor=$(this);
+					
+			!debug||console.log("Attempting to Download:" + $anchor.html() + " >> " + base_url + $anchor.attr("href"));
+
+			if (!debug)//download for realz
+			{
+				$anchor.attr("href",base_url+$anchor.attr("href"));
+				$anchor[0].click();
+			}
+
+			$("#status-container").html("<b>Currently on " + ((start_idx + index)+1) + " of " + num_files + "</b><br />Last File Downloaded: " + $anchor.attr("href"));
+		})
+	}
+	
+	function parse_extract(extract){
+		if (extract.length<=0)
+		{
+			return;
+		}
+		
+		var idx_container_start=extract.indexOf("<table id=\"resultsGrid\"");
+		var idx_container_end=extract.indexOf("</table>",idx_container_start+1);
+
+		//do it this way to avoid parsing that happens, tries to load images, otherwise straight to dom :/
+		var container_raw=extract.substr(idx_container_start,(idx_container_end-idx_container_start)+8);
+		
+		return $("<div></div>").html(container_raw);
+	}	
+	</script>
+	<a rel="license" href="http://creativecommons.org/licenses/by/4.0/"><img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by/4.0/88x31.png" /></a><br />This work is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by/4.0/">Creative Commons Attribution 4.0 International License</a>.
+	<br />
+	<br />
+	<b>Minimally Tested in latest version of Google Chrome 40.0.2</b>
+	<br />
+	<i>Given the short duration of my time on subarus site i have only done a bare amount of testing, basically it worked for me given the setup below</i>
+	<br />
+	<br />
+	<b>Why make this?</b>
+		<br />
+		Subaru limits the downloads per hour of the service manual from their support site.  
+		In addition they break the manual down into a pdf per sub section.  
+		On a personal note i think this is utterly ridiculous, there are just so many better ways to provide this material, i'm not saying for free or anything, just not painfully inconvenient to get.
+		To break it up this way is just asinine and to then limit downloads per hour ... 
+		Anyway ... 
+		I tried to find a download manager that functioned like this and none seemed to throttle the downloads, they just tried to get all 1000+ pdfs at once (very annoying).
+		So what this little script does is downloads each file from the page with a delay after each to keep you out of the 50 / hour limit.  
+		This does not spam their server, it actually generates the bare minimum of traffic and in at a very slow pace.  You can use a lower delay just keep in mind you want to stay below 50 / hour.  
+		73 seconds is, I believe, the fastest time to stay under the 50 / hour but due to randomness i would aim a little higher so you dont lock out accidentally.
+	<br />
+	<br />
+	<b>Do I still need to buy time on the subaru site?</b>
+	<br />
+	Yes.  All this does is automate the downloads, you still need the same access that you would if you were going to manually download a pdf.
+	<br />
+	<br />
+	<b>Is Subaru OK with this?</b>
+	<br />
+	Don't know, don't care.  I'm annoyed as hell that such a script would even need to be made.<br />
+	<br />	
+	I don't see it as breaking any law / agreement / TOS / EULA etc.  There is no bypassing copyrights or access, it is just automating clicks on a page.
+	  Use at your own risk, IANAL.
+	<br />
+	<br />
+	<hr />
+	<b>Prep:</b>
+	<ol>
+		<li>Set the download directory in chrome to where you want the pdfs (there will be a lot)</li>
+		<li>In chrome settings, advanced, plugins, disable "PDF Viewer", this will force a pdf download instead of using built in.<br />
+		If you are using another application for PDF (adobe, sumatra, etc) you will need to disable opening within the appropriate app, possibly in chrome too, not sure.</li>
+	</ol>
+	<b>To Download:</b>
+	<ol>
+		<li>First sign in to subaru support site (I would keep the site open in addition to this window but you may be safe to close it), you will need to purchase time from them.</li>
+		<li>Select Full Service manual and search for the vehicle you want. (I have only tested with this type of manual)</li>
+		<li>Once results come back, the page should look like a large table of contents, Right click the page and "view source".</li>
+		<li>Select all of the text and copy it (you can not do "Save As" as the table of contents won't be present in the file).</li>
+		<li>Paste the contents into the text box below</li>
+		<li>Click the "process html source" button, you should see ### pdfs have been discovered, this is the number of files and also an indicator you did the prior steps correctly.  
+			If you see 0 pdfs have been discovered then you didnt get the full source, or Subaru changed the page layout too much :/</li>
+		<li>The "Download Files" link will now be active, click it and walk away it will probably take a while. For an example the 2015 WRX M6 was 1132 PDFs with a 90 second delay you are looking at around 28 hours to get all the files.</li>
+		<li>To stop the download, first note your index, then just refresh the page or close the browser.  When you restart it just enter the index you left off at and it will pick up there</li>
+	</ol>
+	<b>OK I have a thousand PDF's now what?</b>
+	<br />
+	I didnt have an easy way to regenerate the table of contents however a few minutes in a decent text editor (I use notepad++) and you will have a nice table of contents.
+	<ol>	
+		<li>First you will need the same "Source code" that you pasted into the import box.</li>
+		<li>Open a new text file in whatever editor you are using and paste the text in there, save it with a name like "TOC.html" in the same folder as all the pdfs.</li>
+		<li>Around line 600 (or by searching) look for the text <b>&lt;div id="resultsGridDiv"&gt;</b> Select everything above it and delete it.</li>
+		<li>Now scroll wayyyyy down past all the links to PDFS until you see  <b>&lt;/tbody&gt;&lt;/table&gt;&lt;/div&gt;</b> (each tag will probably be on its own line), delete everything after the <b>&lt;/div&gt;</b></li>
+		<li>Now at the very top of the page type in <b>&lt;html&gt;&lt;body&gt;</b> and at the very bottom of the page <b>&lt;/html&gt;&lt;/body&gt; </b>
+		<li>OK one last part, each link to a pdf will look something like:<br />
+			<pre>&lt;li&gt;&lt;a href='<span style="color:red;">/proxy/92403/pdf/serviceManual/092403_2015_WRX/</span>G1190BEV11_11.pdf'&gt;2. Schedule&lt;/a&gt;&lt;/li&gt;</pre>
+			You will want to select and copy the text in red from any of the links (the numbers will vary by vehicle but you want everything prior to the filename including the /).  Then in your text editor use the Find &amp; Replace function and paste the copied line into the "Find:" box and set the "Replace with:" box to an empty string (Blank text box).  Replace all instances found in the file.
+		</li>
+		<li>Save the file and you should be all set</li>
+	
+	</ol>
+	<hr />
+	<table cellpadding="2" cellspacing="1" border="1">
+		<tr>
+			<th>Base Url:</th>
+			<td><input type="text" value="http://techinfo.subaru.com" id="txtBaseURL" size="64" /></td>
+		</tr>
+		<tr>
+			<th>Delay:</th>
+			<td><input type="text" value="90" id="txtDelay" size="3" /> (in seconds) 90 seconds is safe to stay under 50 / hour download </td>
+		</tr>
+		<tr>
+			<th>Start Index:</th>
+			<td><input type="text" value="1" id="txtStartIndex" size="10" /> (to resume downloading)</td>
+		</tr>
+		<tr>
+			<th>Import HTML Source:</th>
+			<td><textarea id="textarea-extract"></textarea></td>
+		</tr>
+	</table>
+	<br />
+	<button id="btn-process-extract">Process HTML Source</button>
+	<button id="btn-download-files" disabled="disabled">Download Files</button>
+	<br />
+	<br />
+	<h4>Status:</h4>
+	<hr />
+	<div id="status-container"></div>
+	<hr />
+	<br />
+	<br />
+	<br />
+	<b>Standard disclaimer</b>
+	<br />
+	THIS SOFTWARE IS PROVIDED "AS IS" AND ANY EXPRESSED OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE REGENTS OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+	HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+  </body>
+</html>
